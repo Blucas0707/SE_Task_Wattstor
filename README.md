@@ -19,14 +19,13 @@ A FastAPI-based API for managing energy monitoring devices and metrics.
 - SQLAlchemy
 - Pydantic
 - JWT Authentication
-- Docker & Docker Compose
+- Docker & Docker Composehttps://github.com/Blucas0707/SE_Task_Wattstor.git
 
 ## Quick Start with Docker
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
-cd wattstor-api
+git clone https://github.com/Blucas0707/SE_Task_Wattstor.git
 ```
 
 2. Start the services:
