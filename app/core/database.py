@@ -1,13 +1,16 @@
-# src/database.py
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-# SQLite connection URL
-SQLALCHEMY_DATABASE_URL = 'sqlite:///./energy.db'
+from settings import DATABASE_URL
 
-# create_engine opens connection; for SQLite, disable same thread check
+print(f'{DATABASE_URL=}')
+
 engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, connect_args={'check_same_thread': False}
+    DATABASE_URL,
+    pool_size=10,
+    max_overflow=20,
+    pool_timeout=30,
+    pool_recycle=1800,
 )
 
 # SessionLocal is used in service layer, not through router DI

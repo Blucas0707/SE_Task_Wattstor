@@ -1,4 +1,3 @@
-# src/db_session.py
 from contextvars import ContextVar
 from contextlib import contextmanager
 from sqlalchemy.orm import Session
