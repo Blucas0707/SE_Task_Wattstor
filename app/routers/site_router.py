@@ -9,7 +9,6 @@ router = APIRouter(prefix='/sites', tags=['Sites'])
 def read_sites():
     """R1: List all sites."""
     sites = site_service.list_sites()
-    print(f'{sites=}')
     return sites
 
 
