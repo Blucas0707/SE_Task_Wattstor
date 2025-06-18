@@ -9,7 +9,7 @@
 ### 2. Clone the Repository
 
 ```bash
-git clone https://github.com/Blucas0707/wattstor-energy-system.git
+git clone https://github.com/Blucas0707/SE_Task_Wattstor.git
 cd wattstor-energy-system
 ```
 
