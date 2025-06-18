@@ -86,4 +86,6 @@ Desktop.ini
 
 # Ignore environment variable files
 .env
-.env.*
+
+# Ignore pdf files
+*.pdf
