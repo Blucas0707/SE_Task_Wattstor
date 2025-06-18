@@ -1,17 +1,22 @@
-# src/main.py
 from fastapi import FastAPI
+from contextlib import asynccontextmanager
+from app.core.db_session import get_db
 from app.core.database import Base, engine
-# from .routers import site_router, device_router, metric_router, subscription_router
-from app.routers import site_router, device_router, metric_router, subscription_router, auth_router
+from app.mock_data import init_mock_data
+from app.routers import all_routers
 
-# Create tables
-Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="Energy Management API")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    Base.metadata.create_all(bind=engine)
+
+    db = next(get_db())
+    init_mock_data(db)
+    yield
+
+
+app = FastAPI(title='Energy Management API', lifespan=lifespan)
 
 # Include routers
-app.include_router(auth_router.router)
-app.include_router(site_router.router)
-app.include_router(device_router.router)
-app.include_router(metric_router.router)
-app.include_router(subscription_router.router)
+for router in all_routers:
+    app.include_router(router)
