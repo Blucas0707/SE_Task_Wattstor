@@ -1,20 +1,24 @@
-from sqlalchemy import Column, Integer, String, Enum, Boolean, Table, ForeignKey
+import enum
+
+from sqlalchemy import Column, Integer, String, Enum, Boolean
 from sqlalchemy.orm import relationship
+
 from app.core.database import Base
 from app.models.user_site import user_site
-import enum
 
 
 class UserRole(enum.Enum):
     """User roles in the system"""
-    STANDARD = "standard"
-    TECHNICIAN = "technician"
-    ADMIN = "admin"
+
+    STANDARD = 'standard'
+    TECHNICIAN = 'technician'
+    ADMIN = 'admin'
 
 
 class User(Base):
     """User model for authentication and authorization"""
-    __tablename__ = "users"
+
+    __tablename__ = 'users'
 
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True)
@@ -25,8 +29,6 @@ class User(Base):
 
     # Relationships
     authorized_sites = relationship(
-        "Site",
-        secondary=user_site,
-        back_populates="authorized_users"
+        'Site', secondary=user_site, back_populates='authorized_users'
     )
-    subscriptions = relationship("Subscription", back_populates="user")
+    subscriptions = relationship('Subscription', back_populates='user')

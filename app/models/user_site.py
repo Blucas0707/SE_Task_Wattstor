@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, ForeignKey, Table
+
 from app.core.database import Base
 
 # Association table for user-site relationship
