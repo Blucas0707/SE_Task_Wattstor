@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends
+
 from app.schemas.device import Device, DeviceCreate
 from app.services import device_service
 from app.models.user import User

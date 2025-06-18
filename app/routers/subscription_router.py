@@ -1,17 +1,17 @@
+from datetime import datetime, timezone, timedelta
+
 from fastapi import APIRouter, HTTPException, Depends
+
 from app.schemas.subscription import Subscription, SubscriptionCreate
 from app.services import subscription_service
 from app.models.user import User
 from app.core.auth import get_current_active_user
-from datetime import datetime, timezone, timedelta
 
 router = APIRouter(prefix='/subscriptions', tags=['Subscriptions'])
 
 
 @router.get('/', response_model=list[Subscription])
-async def read_subscriptions(
-    current_user: User = Depends(get_current_active_user)
-):
+async def read_subscriptions(current_user: User = Depends(get_current_active_user)):
     """
     R4: List all subscriptions for the current user.
     """
@@ -20,8 +20,7 @@ async def read_subscriptions(
 
 @router.get('/{subscription_id}', response_model=Subscription)
 async def read_subscription(
-    subscription_id: int,
-    current_user: User = Depends(get_current_active_user)
+    subscription_id: int, current_user: User = Depends(get_current_active_user)
 ):
     """
     R4: Get a specific subscription by ID.
@@ -31,14 +30,15 @@ async def read_subscription(
     if not sub:
         raise HTTPException(status_code=404, detail='Subscription not found')
     if sub.user_id != current_user.id:
-        raise HTTPException(status_code=403, detail='Not authorized to access this subscription')
+        raise HTTPException(
+            status_code=403, detail='Not authorized to access this subscription'
+        )
     return sub
 
 
 @router.post('/', response_model=Subscription, status_code=201)
 async def create_subscription(
-    sub_in: SubscriptionCreate,
-    current_user: User = Depends(get_current_active_user)
+    sub_in: SubscriptionCreate, current_user: User = Depends(get_current_active_user)
 ):
     """
     R4: Create a new subscription.
@@ -54,7 +54,7 @@ async def create_subscription(
 async def update_subscription(
     subscription_id: int,
     sub_in: SubscriptionCreate,
-    current_user: User = Depends(get_current_active_user)
+    current_user: User = Depends(get_current_active_user),
 ):
     """
     R4: Update an existing subscription.
@@ -65,7 +65,9 @@ async def update_subscription(
         if not sub:
             raise HTTPException(status_code=404, detail='Subscription not found')
         if sub.user_id != current_user.id:
-            raise HTTPException(status_code=403, detail='Not authorized to modify this subscription')
+            raise HTTPException(
+                status_code=403, detail='Not authorized to modify this subscription'
+            )
         return subscription_service.update_subscription(subscription_id, sub_in)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -73,8 +75,7 @@ async def update_subscription(
 
 @router.delete('/{subscription_id}', status_code=204)
 async def delete_subscription(
-    subscription_id: int,
-    current_user: User = Depends(get_current_active_user)
+    subscription_id: int, current_user: User = Depends(get_current_active_user)
 ):
     """
     R4: Delete a subscription by ID.
@@ -85,7 +86,9 @@ async def delete_subscription(
         if not sub:
             raise HTTPException(status_code=404, detail='Subscription not found')
         if sub.user_id != current_user.id:
-            raise HTTPException(status_code=403, detail='Not authorized to delete this subscription')
+            raise HTTPException(
+                status_code=403, detail='Not authorized to delete this subscription'
+            )
         subscription_service.delete_subscription(subscription_id)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -94,8 +97,7 @@ async def delete_subscription(
 
 @router.get('/{subscription_id}/latest')
 async def get_subscription_latest_values(
-    subscription_id: int,
-    current_user: User = Depends(get_current_active_user)
+    subscription_id: int, current_user: User = Depends(get_current_active_user)
 ):
     """
     R4: Get the latest values for all metrics in a subscription.
@@ -106,7 +108,9 @@ async def get_subscription_latest_values(
         if not sub:
             raise HTTPException(status_code=404, detail='Subscription not found')
         if sub.user_id != current_user.id:
-            raise HTTPException(status_code=403, detail='Not authorized to access this subscription')
+            raise HTTPException(
+                status_code=403, detail='Not authorized to access this subscription'
+            )
         return subscription_service.get_subscription_latest_values(subscription_id)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -118,7 +122,7 @@ async def get_subscription_history(
     start_time: datetime | None = None,
     end_time: datetime | None = None,
     interval_minutes: int = 5,
-    current_user: User = Depends(get_current_active_user)
+    current_user: User = Depends(get_current_active_user),
 ):
     """
     R5: Get historical time series data for all metrics in a subscription.
@@ -135,7 +139,9 @@ async def get_subscription_history(
         if not sub:
             raise HTTPException(status_code=404, detail='Subscription not found')
         if sub.user_id != current_user.id:
-            raise HTTPException(status_code=403, detail='Not authorized to access this subscription')
+            raise HTTPException(
+                status_code=403, detail='Not authorized to access this subscription'
+            )
 
         # Set default time range if not provided
         if not end_time:
@@ -147,7 +153,7 @@ async def get_subscription_history(
             subscription_id=subscription_id,
             start_time=start_time,
             end_time=end_time,
-            interval_minutes=interval_minutes
+            interval_minutes=interval_minutes,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
