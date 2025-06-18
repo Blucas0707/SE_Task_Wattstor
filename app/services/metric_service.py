@@ -1,17 +1,18 @@
-from sqlalchemy.orm import Session
-from datetime import datetime, timedelta
 import random
+from datetime import datetime, timedelta
 from typing import Optional
-from fastapi import HTTPException
 
-from app.models.metric import Metric
-from app.models.device import Device
-from app.schemas.metric import MetricCreate, MetricTimeSeries
+from fastapi import HTTPException
+from sqlalchemy.orm import Session
+
 from app.core.db_session import with_db_session, current_session
+from app.models.device import Device
+from app.models.metric import Metric
+from app.schemas.metric import Metric as MetricSchema, MetricCreate, MetricTimeSeries
 
 
 @with_db_session
-def list_metrics(device_id: int | None = None) -> list[Metric]:
+def list_metrics(device_id: int | None = None) -> list[MetricSchema]:
     """
     Retrieve all metrics. If device_id is provided, filter metrics by that device.
     Sorted by timestamp descending.
@@ -20,20 +21,22 @@ def list_metrics(device_id: int | None = None) -> list[Metric]:
     query = db.query(Metric)
     if device_id is not None:
         query = query.filter(Metric.device_id == device_id)
-    return query.order_by(Metric.timestamp.desc()).all()
+    metrics = query.order_by(Metric.timestamp.desc()).all()
+    return [MetricSchema.model_validate(metric) for metric in metrics]
 
 
 @with_db_session
-def get_metric(metric_id: int) -> Metric | None:
+def get_metric(metric_id: int) -> MetricSchema | None:
     """
     Retrieve a single metric by its ID.
     """
     db: Session = current_session()
-    return db.query(Metric).filter(Metric.id == metric_id).first()
+    metric = db.query(Metric).filter(Metric.id == metric_id).first()
+    return MetricSchema.model_validate(metric)
 
 
 @with_db_session
-def create_metric(metric_in: MetricCreate) -> Metric:
+def create_metric(metric_in: MetricCreate) -> MetricSchema:
     """
     Create a new metric for a specific device.
     Validate the device exists before creation.
@@ -46,11 +49,11 @@ def create_metric(metric_in: MetricCreate) -> Metric:
     db.add(metric)
     db.flush()
     db.refresh(metric)
-    return metric
+    return MetricSchema.model_validate(metric)
 
 
 @with_db_session
-def update_metric(metric_id: int, metric_in: MetricCreate) -> Metric:
+def update_metric(metric_id: int, metric_in: MetricCreate) -> MetricSchema:
     """
     Update an existing metric's data.
     If device_id changes, validate new device exists.
@@ -69,7 +72,7 @@ def update_metric(metric_id: int, metric_in: MetricCreate) -> Metric:
     metric.value = metric_in.value
     db.flush()
     db.refresh(metric)
-    return metric
+    return MetricSchema.model_validate(metric)
 
 
 @with_db_session
@@ -91,48 +94,44 @@ def get_metric_history(
     metric_id: int,
     start_time: Optional[datetime] = None,
     end_time: Optional[datetime] = None,
-    interval_minutes: int = 5
+    interval_minutes: int = 5,
 ) -> MetricTimeSeries:
-    """獲取指標的歷史時間序列數據"""
-    # 驗證指標是否存在
+    """Get the historical time series data for a metric"""
+    # Validate if the metric exists
     metric = db.query(Metric).filter(Metric.id == metric_id).first()
     if not metric:
-        raise HTTPException(status_code=404, detail="Metric not found")
+        raise HTTPException(status_code=404, detail='Metric not found')
 
-    # 設置默認時間範圍
+    # Set default time range
     if not end_time:
         end_time = datetime.utcnow()
     if not start_time:
         start_time = end_time - timedelta(hours=24)
 
-    # 驗證時間範圍
+    # Validate time range
     if start_time >= end_time:
         raise HTTPException(
-            status_code=400,
-            detail="Start time must be before end time"
+            status_code=400, detail='Start time must be before end time'
         )
 
-    # 生成時間戳
+    # Generate timestamps
     timestamps = []
     current_time = start_time
     while current_time <= end_time:
-        timestamps.append(current_time.isoformat() + "Z")
+        timestamps.append(current_time.isoformat() + 'Z')
         current_time += timedelta(minutes=interval_minutes)
 
-    # 使用固定的種子生成可重現的隨機數據
+    # Use a fixed seed to generate reproducible random data
     random.seed(metric_id)
     values = [random.uniform(0, 100) for _ in range(len(timestamps))]
 
     return MetricTimeSeries(
-        metric_id=metric_id,
-        timestamps=timestamps,
-        values=values,
-        unit=metric.unit
+        metric_id=metric_id, timestamps=timestamps, values=values, unit=metric.unit
     )
 
 
 @with_db_session
-def get_latest_metric_value(device_id: int) -> list[Metric]:
+def get_latest_metric_value(device_id: int) -> list[MetricSchema]:
     """
     Get the latest value for each metric of a device.
     Returns a list of metrics with their latest values and metadata.
@@ -156,4 +155,6 @@ def get_latest_metric_value(device_id: int) -> list[Metric]:
         if latest:
             latest_metrics.append(latest)
 
-    return latest_metrics
+    return [
+        MetricSchema.model_validate(latest_metric) for latest_metric in latest_metrics
+    ]

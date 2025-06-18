@@ -1,32 +1,41 @@
-from sqlalchemy.orm import Session
-from app.models.subscription import Subscription
-from app.models.metric import Metric
-from app.schemas.subscription import SubscriptionCreate
-from app.core.db_session import with_db_session, current_session
 import random
 from datetime import datetime, timedelta
 
+from sqlalchemy.orm import Session
+
+from app.core.db_session import with_db_session, current_session
+from app.models.subscription import Subscription
+from app.models.metric import Metric
+from app.schemas.subscription import (
+    Subscription as SubscriptionSchema,
+    SubscriptionCreate,
+)
+
 
 @with_db_session
-def list_subscriptions() -> list[Subscription]:
+def list_subscriptions() -> list[SubscriptionSchema]:
     """
     Retrieve all subscriptions.
     """
     db: Session = current_session()
-    return db.query(Subscription).all()
+    subscriptions = db.query(Subscription).all()
+    return [SubscriptionSchema.model_validate(sub) for sub in subscriptions]
 
 
 @with_db_session
-def get_subscription(subscription_id: int) -> Subscription | None:
+def get_subscription(subscription_id: int) -> SubscriptionSchema | None:
     """
     Retrieve a single subscription by its ID.
     """
     db: Session = current_session()
-    return db.query(Subscription).filter(Subscription.id == subscription_id).first()
+    subscription = (
+        db.query(Subscription).filter(Subscription.id == subscription_id).first()
+    )
+    return SubscriptionSchema.model_validate(subscription)
 
 
 @with_db_session
-def create_subscription(sub_in: SubscriptionCreate) -> Subscription:
+def create_subscription(sub_in: SubscriptionCreate) -> SubscriptionSchema:
     """
     Create a new subscription and link to metrics.
     Validate each metric exists before linking.
@@ -41,13 +50,13 @@ def create_subscription(sub_in: SubscriptionCreate) -> Subscription:
     db.add(sub)
     db.flush()
     db.refresh(sub)
-    return sub
+    return SubscriptionSchema.model_validate(sub)
 
 
 @with_db_session
 def update_subscription(
     subscription_id: int, sub_in: SubscriptionCreate
-) -> Subscription:
+) -> SubscriptionSchema:
     """
     Update an existing subscription's name and metrics.
     Validate metrics before updating links.
@@ -65,7 +74,7 @@ def update_subscription(
     sub.metrics = metrics
     db.flush()
     db.refresh(sub)
-    return sub
+    return SubscriptionSchema.model_validate(sub)
 
 
 @with_db_session
@@ -103,22 +112,24 @@ def get_subscription_latest_values(subscription_id: int) -> dict:
             .first()
         )
         if latest:
-            latest_values.append({
-                'metric_id': latest.id,
-                'name': latest.name,
-                'unit': latest.unit,
-                'value': latest.value,
-                'timestamp': latest.timestamp,
-                'device_id': latest.device_id,
-                'device_name': latest.device.name,
-                'site_id': latest.device.site_id,
-                'site_name': latest.device.site.name
-            })
+            latest_values.append(
+                {
+                    'metric_id': latest.id,
+                    'name': latest.name,
+                    'unit': latest.unit,
+                    'value': latest.value,
+                    'timestamp': latest.timestamp,
+                    'device_id': latest.device_id,
+                    'device_name': latest.device.name,
+                    'site_id': latest.device.site_id,
+                    'site_name': latest.device.site.name,
+                }
+            )
 
     return {
         'subscription_id': sub.id,
         'subscription_name': sub.name,
-        'metrics': latest_values
+        'metrics': latest_values,
     }
 
 
@@ -127,7 +138,7 @@ def get_subscription_history(
     subscription_id: int,
     start_time: datetime,
     end_time: datetime,
-    interval_minutes: int = 5
+    interval_minutes: int = 5,
 ) -> dict:
     """
     Get time series data for all metrics in a subscription.
@@ -157,17 +168,19 @@ def get_subscription_history(
             values.append(base_value + variation)
             current_time += timedelta(minutes=interval_minutes)
 
-        time_series.append({
-            'metric_id': metric.id,
-            'name': metric.name,
-            'unit': metric.unit,
-            'device_id': metric.device_id,
-            'device_name': metric.device.name,
-            'site_id': metric.device.site_id,
-            'site_name': metric.device.site.name,
-            'timestamps': timestamps,
-            'values': values
-        })
+        time_series.append(
+            {
+                'metric_id': metric.id,
+                'name': metric.name,
+                'unit': metric.unit,
+                'device_id': metric.device_id,
+                'device_name': metric.device.name,
+                'site_id': metric.device.site_id,
+                'site_name': metric.device.site.name,
+                'timestamps': timestamps,
+                'values': values,
+            }
+        )
 
     return {
         'subscription_id': sub.id,
@@ -175,5 +188,5 @@ def get_subscription_history(
         'start_time': start_time,
         'end_time': end_time,
         'interval_minutes': interval_minutes,
-        'metrics': time_series
+        'metrics': time_series,
     }
